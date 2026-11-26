@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>简历关键词体检器</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --ink:#111827; --muted:#6b7280;
+    --line:#e5e7eb; --accent:#4f46e5; --ok:#16a34a; --bad:#dc2626; --warn:#d97706;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--bg);color:var(--ink);line-height:1.6;
+  }
+  .app{max-width:1080px;margin:0 auto;padding:32px 20px 60px}
+  header h1{font-size:28px;margin:0 0 8px;letter-spacing:.5px}
+  .sub{color:var(--muted);margin:0 0 24px;font-size:14px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column}
+  label{font-weight:600;font-size:14px;margin-bottom:8px}
+  textarea{
+    flex:1;min-height:260px;resize:vertical;border:1px solid var(--line);border-radius:10px;
+    padding:12px;font:inherit;font-size:14px;background:#fafafa;outline:none;
+  }
+  textarea:focus{border-color:var(--accent);background:#fff}
+  .toolbar{display:flex;gap:10px;margin:16px 0;flex-wrap:wrap;align-items:center}
+  #extra{flex:1;min-width:220px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font:inherit;background:#fff;outline:none}
+  #extra:focus{border-color:var(--accent)}
+  button{border:0;border-radius:10px;padding:10px 20px;font:inherit;font-weight:600;cursor:pointer;background:var(--accent);color:#fff}
+  button.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+  button:hover{opacity:.92}
+  .hidden{display:none}
+  .resultCard{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:16px}
+  .scoreRow{display:flex;gap:28px;align-items:center;flex-wrap:wrap}
+  .ring{
+    width:140px;height:140px;border-radius:50%;flex:0 0 auto;
+    background:conic-gradient(var(--rc) calc(var(--p) * 1%), #e5e7eb 0);
+    display:grid;place-items:center;
+  }
+  .ring-inner{width:112px;height:112px;border-radius:50%;background:#fff;display:grid;place-items:center;text-align:center}
+  .ring-inner b{font-size:36px;line-height:1}
+  .ring-inner span{font-size:13px;color:var(--muted)}
+  .scoreMeta{flex:1;min-width:240px}
+  .scoreMeta .grade{font-size:20px;font-weight:700;margin-bottom:4px}
+  .scoreMeta .stat{color:var(--muted);font-size:14px}
+  .dims{margin-top:20px;display:grid;grid-template-columns:repeat(2,1fr);gap:14px 28px}
+  @media(max-width:600px){.dims{grid-template-columns:1fr}}
+  .dim .dimTop{display:flex;justify-content:space-between;font-size:14px;margin-bottom:6px}
+  .dim .dimTop b{font-weight:600}
+  .bar{height:10px;border-radius:999px;background:#eceef2;overflow:hidden}
+  .bar i{display:block;height:100%;border-radius:999px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{font-size:13px;padding:4px 12px;border-radius:999px;border:1px solid transparent}
+  .chip.ok{background:#ecfdf3;color:#15803d;border-color:#bbf7d0}
+  .chip.miss{background:#fef2f2;color:#b91c1c;border-color:#fecaca}
+  .chipMeta{color:var(--muted);font-size:13px;margin:0 0 10px}
+  h2{font-size:17px;margin:0 0 14px}
+  .suggestions{margin:0;padding-left:20px;font-size:14px}
+  .suggestions li{margin-bottom:10px}
+  footer{color:var(--muted);font-size:12px;text-align:center;margin-top:28px}
+  .legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:4px;vertical-align:middle}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>简历关键词体检器</h1>
+    <p class="sub">粘贴你的简历和目标岗位 JD，检查关键词匹配度、量化表达与结构完整度。结果仅供参考——只补充你真实具备的内容，不要为分数编造经历。</p>
+  </header>
+
+  <main class="grid">
+    <section class="panel">
+      <label for="resume">你的简历文本</label>
+      <textarea id="resume" placeholder="把简历内容纯文本粘贴到这里……"></textarea>
+    </section>
+    <section class="panel">
+      <label for="jd">目标岗位 JD</label>
+      <textarea id="jd" placeholder="把岗位描述完整粘贴到这里……"></textarea>
+    </section>
+  </main>
+
+  <div class="toolbar">
+    <input id="extra" placeholder="补充关键词（可选，用逗号分隔，如：数据分析, 用户访谈）">
+    <button id="analyze">开始体检</button>
+    <button id="sample" class="ghost">填入示例</button>
+    <button id="clear" class="ghost">清空</button>
+  </div>
+
+  <section id="result" class="hidden"></section>
+
+  <footer>纯前端本地运行 · 不上传任何数据 · v1.0</footer>
+</div>
+
+<script>
+/* ========= 词库 ========= */
+const DICT = [
+  // 产品类
+  "产品调研","需求分析","需求提炼","需求文档","PRD","竞品分析","用户研究","用户访谈","用户反馈","用户画像",
+  "数据分析","产品方案","产品设计","功能设计","原型","线框图","流程图","交互设计","功能验收","验收标准",
+  "测试用例","缺陷","项目管理","版本迭代","迭代","埋点","指标","增长","运营","复盘","场景","痛点",
+  "需求评审","上线","竞品","市场调研","行业分析","AB测试","A/B测试",
+  // AI 类
+  "AI","Agent","智能体","大模型","模型","Prompt","提示词","工作流","自动化","API","CLI","Skill","Skills",
+  "MCP","LLM","机器学习","深度学习","自然语言处理","NLP","计算机视觉","AIGC","生成式",
+  "ChatGPT","Claude Code","Claude","Codex","WorkBuddy","开拍","美图","数字人","语音识别","图像识别","视频生成","AI工具",
+  // 技术类
+  "Python","Java","C++","C语言","JavaScript","TypeScript","HTML","CSS","React","Vue","Node.js",
+  "SQL","MySQL","数据库","Git","Linux","数据结构","算法","爬虫","前端","后端",
+  "微信小程序","小程序","云函数","云开发",
+  // 工具类
+  "Excel","PPT","Word","Axure","Figma","Sketch","Postman","Jira","剪映","Photoshop","PS","PR","办公软件","墨刀","钉钉","飞书",
+  // 内容类
+  "口播","剪辑","视频剪辑","短视频","字幕","封面","选题","脚本","文案","网感","审美","排版",
+  "社媒","社交媒体","账号","博主","自媒体","内容运营","涨粉","抖音","小红书","B站","微信公众号",
+  // 软技能
+  "沟通","协作","团队合作","逻辑","表达能力","学习能力","抗压","执行力","责任心","主动","细心","踏实","时间管理"
+];
+
+/* n-gram 提取时过滤的通用词（避免噪音） */
+const NGRAM_BLACKLIST = new Set([
+  "岗位","职责","要求","加分","优先","相关","工作","能力","经验","工具","进行","协助","输出","确保",
+  "关注","包括","一类","多类","其中","最好","提供","需要","深度","体验","一定","基础","使用","做过",
+  "以上","以下","以及","或者","具有","能够","了解","熟悉","负责","参与","帮助","学习","认真","良好",
+  "日常","内容","情况","描述","实习","同学","时间","每周","全职","长期","可以","公司","团队","方面",
+  "岗位职责","岗位要求","加分要求","能力者","职位","详情","发布","公司","内部","推荐","登录","分享"
+]);
+
+const STOP_EN = new Set(["the","and","for","with","of","to","in","on","at","by","or","is","are","be","an","as","we","you","our","your","etc"]);
+
+/* ========= 核心：关键词提取 ========= */
+function extractKeywords(jdText, extraText){
+  const jd = (jdText || "").trim();
+  const result = new Map(); // term -> info
+
+  const addTerm = (term) => {
+    const t = term.trim();
+    if (!t || t.length < 2) return;
+    if (!result.has(t)) result.set(t, true);
+  };
+
+  // 1) 词典命中：JD 里出现的已知关键词（英文按单词边界匹配，避免 PR 命中 Prompt）
+  for (const term of DICT) {
+    if (countMatches(jd, term) > 0) addTerm(term);
+  }
+
+  // 2) 英文术语：JD 中的英文词块
+  const enTokens = jd.match(/[A-Za-z][A-Za-z0-9+#.\-]{1,}/g) || [];
+  for (const token of enTokens) {
+    const lower = token.toLowerCase();
+    if (STOP_EN.has(lower)) continue;
+    if (/^\d+$/.test(token)) continue;
+    // 去掉句尾标点
+    addTerm(token.replace(/[.\-]+$/, ""));
+  }
+
+  // 3) 中文 n-gram：先把通用词挖掉，避免切出「协助进行」「助进行产」这类碎片
+  let cleaned = jd;
+  const blWords = Array.from(NGRAM_BLACKLIST).sort((a, b) => b.length - a.length);
+  for (const w of blWords) cleaned = cleaned.split(w).join("，");
+  const runs = cleaned.match(/[一-龥]{2,}/g) || [];
+  const counts = new Map();
+  for (const run of runs) {
+    for (let n = 2; n <= 4; n++) {
+      for (let i = 0; i + n <= run.length; i++) {
+        const g = run.slice(i, i + n);
+        counts.set(g, (counts.get(g) || 0) + 1);
+      }
+    }
+  }
+  const existing = Array.from(result.keys());
+  const grams = [];
+  for (const [g, c] of counts) {
+    if (c < 2) continue;
+    if (NGRAM_BLACKLIST.has(g)) continue;
+    if (/^(的|了|和|与|等|在|是|有|或|把|被|给|对|从|向)/.test(g)) continue;
+    if (/(的|了|和|与|等|在|是|有|或|把|被|给|对|从|向)$/.test(g)) continue;
+    if (existing.some(e => e.includes(g) || g.includes(e))) continue;
+    grams.push([g, c]);
+  }
+  grams.sort((a, b) => b[1] - a[1] || b[0].length - a[0].length);
+  for (const [g] of grams.slice(0, 8)) addTerm(g);
+
+  // 4) 用户补充关键词
+  const extra = (extraText || "").split(/[,，、;；\s]+/).map(s => s.trim()).filter(Boolean);
+  for (const t of extra) addTerm(t);
+
+  return Array.from(result.keys());
+}
+
+/* ========= 核心：匹配计数 ========= */
+function countMatches(text, term){
+  if (!text || !term) return 0;
+  const isAscii = /^[\x00-\x7F]+$/.test(term);
+  const esc = term.replace(/[.*+?^${}()|[\]\\\/\-]/g, "\\$&");
+  let re;
+  if (isAscii) {
+    // 英文/符号词按单词边界匹配，避免 AI 匹配到 email 这类词
+    re = new RegExp("(?<![A-Za-z])" + esc + "(?![A-Za-z])", "gi");
+  } else {
+    re = new RegExp(esc, "g");
+  }
+  const m = text.match(re);
+  return m ? m.length : 0;
+}
+
+/* ========= 核心：分析 ========= */
+function analyze(resumeText, jdText, extraText){
+  const resume = resumeText || "";
+  const jd = jdText || "";
+  const terms = extractKeywords(jd, extraText);
+
+  // 关键词命中
+  const keywords = terms.map(term => {
+    const hit = countMatches(resume, term);
+    return { term, inResume: hit > 0, countResume: hit };
+  });
+  const total = keywords.length;
+  const matched = keywords.filter(k => k.inResume).length;
+  const coverage = total ? matched / total : 0;
+  const kwScore = Math.round(coverage * 100);
+
+  // 量化表达：内容行里含数字的比例（目标 40% 满分）
+  const contentLines = resume.split(/\r?\n/).map(l => l.trim()).filter(l => {
+    if (l.length < 10) return false;
+    if (/^(教育|项目|实习|校园|技能|证书|获奖|自我评价|个人信息)[一-龥]*$/.test(l) && l.length < 12) return false;
+    return true;
+  });
+  const quantified = contentLines.filter(l => /\d/.test(l)).length;
+  const quantRatio = contentLines.length ? quantified / contentLines.length : 0;
+  const quantScore = Math.min(100, Math.round(quantRatio / 0.4 * 100));
+
+  // 结构完整：教育 / 项目(经历) / 技能
+  const sectionDefs = [
+    { key: "教育", label: "教育背景", re: /教育/ },
+    { key: "项目", label: "项目经历", re: /项目|经历/ },
+    { key: "技能", label: "技能", re: /技能/ }
+  ];
+  const sectionFound = sectionDefs.filter(s => s.re.test(resume));
+  const missingSections = sectionDefs.filter(s => !s.re.test(resume)).map(s => s.label);
+  const structureScore = Math.round(sectionFound.length / sectionDefs.length * 100);
+
+  // 表达力度：弱动词
+  const weakMatches = resume.match(/负责|参与|协助|帮助/g) || [];
+  const weakHits = weakMatches.length;
+  const weakScore = Math.max(0, 100 - weakHits * 8);
+
+  // 总分
+  const score = Math.round(kwScore * 0.5 + quantScore * 0.2 + structureScore * 0.15 + weakScore * 0.15);
+  let grade = "需改进";
+  if (score >= 85) grade = "优秀";
+  else if (score >= 70) grade = "良好";
+  else if (score >= 55) grade = "及格";
+
+  // 建议
+  const suggestions = [];
+  const missing = keywords.filter(k => !k.inResume).map(k => k.term);
+  if (total < 5) {
+    suggestions.push("JD 里识别到的关键词太少，建议把完整的岗位描述粘进来，或在“补充关键词”里手动加几个。");
+  }
+  if (missing.length) {
+    suggestions.push("JD 中有 " + missing.length + " 个词没在简历里出现：" +
+      missing.slice(0, 8).join("、") + (missing.length > 8 ? " 等" : "") +
+      "。如果你真实具备，把这些词补进项目或技能里（面试要能讲出证据）；不具备就忽略——不要编。");
+  }
+  if (quantScore < 70) {
+    suggestions.push("量化表达偏弱：" + contentLines.length + " 条经历里只有 " + quantified +
+      " 条带数字。给每条经历加一个具体数字：条数、时长、提升比例、人数都行。");
+  }
+  if (missingSections.length) {
+    suggestions.push("结构上建议补齐这些模块：" + missingSections.join("、") + "。");
+  }
+  if (weakHits > 0) {
+    suggestions.push("出现 " + weakHits + " 处「负责/参与/协助」等弱动词，建议改成「动词 + 对象 + 结果」的写法，例如把“负责数据整理”改成“整理 500 条用户反馈，归纳出 3 类高频问题”。");
+  }
+  suggestions.push("提醒：这个工具只检查「像不像」和「匹配不匹配」，判断标准永远是你的真实经历——不要为了分数编内容。");
+
+  return {
+    score, grade,
+    dims: { kw: kwScore, quant: quantScore, structure: structureScore, weak: weakScore },
+    keywords, matched, total,
+    stats: { contentLines: contentLines.length, quantified },
+    suggestions
+  };
+}
+
+/* ========= 示例数据 ========= */
+const SAMPLE_JD = `AI 工具产品实习生（开拍）
+【岗位职责】
+1、协助进行产品调研和提炼需求；
+2、协助进行产品方案输出和功能验收，确保功能上线；
+3、跟踪和体验 AI 工具生态，包括 WorkBuddy、Codex等，关注 Agent、工作流、API/CLI 等能力。
+【岗位要求】
+1. 深度体验过 WorkBuddy、Codex等其中一类或多类工具；
+2. 会剪辑口播视频，有一定网感和审美（最好是个视频博主，需提供社媒账号）；
+3. 逻辑能力强、做事踏实，有基础产品能力；
+4. 加分要求：有 Prompt 调试、Agent 搭建、Skill/工作流配置，或 API/CLI 自动化使用经验。`;
+
+const SAMPLE_RESUME = `黄同学
+厦门理工学院 · 计算机科学与技术 · 本科大二（2025.09–2029.06）
+求职意向：AI 工具产品实习生
+
+个人优势
+- AI 工具重度用户：日常使用 Claude Code 等 Agent 类工具完成自动化任务，熟悉 Prompt 调试、CLI 调用与工作流配置
+- 功能验收能力：独立完成美图产品 119 条测试用例设计与执行，发现 3 个缺陷（含 1 个严重级）
+- 内容与审美：会剪辑口播视频，关注短视频选题与节奏
+
+项目经历
+美图产品测试与体验分析｜独立完成｜2026.11
+- 梳理美颜相机 4 条核心使用链路（权限、拍摄、美颜、保存分享），设计 119 条测试用例
+- 执行 28 条用例，复现并归档 3 个缺陷，输出缺陷报告及截图录屏证据
+- 产出测试计划、验收清单与 Postman 接口测试集合
+
+技能
+- AI 工具：Claude Code、Codex、WorkBuddy（体验中）
+- 测试验收：用例设计、缺陷复现、Postman、测试文档撰写
+- 其他：Excel 数据整理、PPT、文档排版`;
+
+/* ========= 页面逻辑 ========= */
+function initUI(){
+  const $ = id => document.getElementById(id);
+  const resumeEl = $("resume"), jdEl = $("jd"), extraEl = $("extra"), resultEl = $("result");
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+
+  function bar(label, value){
+    const color = value >= 70 ? "var(--ok)" : value >= 45 ? "var(--warn)" : "var(--bad)";
+    return '<div class="dim"><div class="dimTop"><b>' + label + '</b><span>' + value + ' 分</span></div>' +
+      '<div class="bar"><i style="width:' + value + '%;background:' + color + '"></i></div></div>';
+  }
+
+  function render(a){
+    const ringColor = a.score >= 70 ? "var(--ok)" : a.score >= 45 ? "var(--warn)" : "var(--bad)";
+    const chips = a.keywords.map(k =>
+      '<span class="chip ' + (k.inResume ? "ok" : "miss") + '">' + esc(k.term) +
+      (k.inResume && k.countResume > 1 ? " ×" + k.countResume : "") + '</span>'
+    ).join("");
+
+    resultEl.innerHTML =
+      '<section class="resultCard">' +
+        '<div class="scoreRow">' +
+          '<div class="ring" style="--p:' + a.score + ';--rc:' + ringColor + '">' +
+            '<div class="ring-inner"><b>' + a.score + '</b><span>' + a.grade + '</span></div>' +
+          '</div>' +
+          '<div class="scoreMeta">' +
+            '<div class="grade">' + a.grade + '（' + a.score + ' / 100）</div>' +
+            '<div class="stat">关键词命中 ' + a.matched + ' / ' + a.total + ' 个 ｜ 含数字经历 ' +
+              a.stats.quantified + ' / ' + a.stats.contentLines + ' 条</div>' +
+            '<div class="legend"><span><i style="background:var(--ok)"></i>命中</span><span><i style="background:var(--bad)"></i>缺失</span></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="dims">' +
+          bar("关键词覆盖", a.dims.kw) +
+          bar("量化表达", a.dims.quant) +
+          bar("结构完整", a.dims.structure) +
+          bar("表达力度", a.dims.weak) +
+        '</div>' +
+      '</section>' +
+
+      '<section class="resultCard"><h2>关键词体检</h2>' +
+        '<p class="chipMeta">绿色 = 简历里出现了；红色 = JD 里提到但简历没写。只补真实具备的。</p>' +
+        '<div class="chips">' + (chips || '<span class="chipMeta">没有识别到关键词</span>') + '</div>' +
+      '</section>' +
+
+      '<section class="resultCard"><h2>改进建议</h2>' +
+        '<ol class="suggestions">' + a.suggestions.map(s => '<li>' + esc(s) + '</li>').join("") + '</ol>' +
+      '</section>';
+
+    resultEl.classList.remove("hidden");
+    resultEl.scrollIntoView({behavior: "smooth", block: "start"});
+  }
+
+  $("analyze").addEventListener("click", () => {
+    const resume = resumeEl.value.trim();
+    const jd = jdEl.value.trim();
+    if (!resume) { alert("先粘贴你的简历内容～"); resumeEl.focus(); return; }
+    if (!jd) { alert("再把目标岗位的 JD 粘贴进来～"); jdEl.focus(); return; }
+    render(analyze(resume, jd, extraEl.value));
+  });
+
+  $("sample").addEventListener("click", () => {
+    resumeEl.value = SAMPLE_RESUME;
+    jdEl.value = SAMPLE_JD;
+    extraEl.value = "";
+  });
+
+  $("clear").addEventListener("click", () => {
+    resumeEl.value = ""; jdEl.value = ""; extraEl.value = "";
+    resultEl.classList.add("hidden");
+  });
+}
+
+/* 兼容 Node 环境做自动化测试，浏览器里不执行 */
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { analyze, extractKeywords, countMatches, SAMPLES: { resume: SAMPLE_RESUME, jd: SAMPLE_JD } };
+}
+if (typeof document !== "undefined" && document.getElementById("resume")) {
+  initUI();
+}
+</script>
+</body>
+</html>
